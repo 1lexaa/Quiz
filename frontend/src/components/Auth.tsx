@@ -3,15 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import bcrypt from 'bcryptjs'
 import '../styles/Auth.css';
+import '../styles/bg.css'
 
 declare module 'bcryptjs';
 
-interface AuthProps 
-{
-  updateUserData: React.Dispatch<React.SetStateAction<null>>;
-}
-
-function Auth({ updateUserData }: AuthProps)
+function Auth()
 {
   // Hooks.
   //================================================================================================
@@ -36,60 +32,32 @@ function Auth({ updateUserData }: AuthProps)
   const navigate = useNavigate();  // Page navigation hook.
   //================================================================================================
 
-  // Functions.
+  // Login.
   //================================================================================================
-  const ShowRegistrationPlateClick = (event: any) =>  // method shows registration layout.
-  {
-    event.preventDefault();
-    setShowRegistration(true);
-  };
-
   const handleLoginClick = async (event: any) =>  // Login button event.
   {
     event.preventDefault();
 
-    fetch('http://localhost:3000/users').then(response => response.json()).then(data => 
+    try
     { 
-      const { role, user } = checkLoginAndPassword(data);
+      const response = await axios.get('http://localhost:3000/users');
+      const { role, user } = checkLoginAndPassword(response.data);
 
       if(role === "teacher")
-      {
-        updateUserData(user);
+      { 
+        sessionStorage.setItem('userData', JSON.stringify(user));
+
         navigate('/TeacherMenu');
       }
       else if(role === "student")
-        navigate('/Menu');
-    }).catch(error => console.error('Error while getting data:', error));
-  }
-
-  const handleRegistrationClick = async (event: any) => // Register button event.
-  {
-    event.preventDefault();
-
-    if(IsValidRegistrationPanel())
-    {
-      const hesh_pass = await hashPassword(password);
-      const new_user = { name, surname, email, login, hesh_pass, teacher_code};
-
-      try
       {
-        await axios.post('http://localhost:3000/users', new_user);
+        sessionStorage.setItem('userData', JSON.stringify(user));
 
-        setName('');
-        setSurname('');
-        setEmail('');
-        setLogin('');
-        setPassword('');
-        setShowRegistration(false);
-        setCode('null');
-        
-        alert("Welcome");
-      } 
-      catch (error) { console.error('Registration failed:', error); }
+        navigate('/Menu');
+      }
     }
-  };
-
-  const handleCheckboxChange = () =>  { setIsChecked(!isTeacher); };
+    catch(error) {  console.error('Error while getting data:', error); };
+  }
 
   // Login authentication.
   //================================================================================================
@@ -125,6 +93,44 @@ function Auth({ updateUserData }: AuthProps)
       return { role: "null", user: null };
   }
   //================================================================================================
+  //================================================================================================
+
+  // Registration.
+  //================================================================================================
+  const ShowRegistrationPlateClick = (event: any) =>  // Method shows registration layout.
+  {
+    event.preventDefault();
+    setShowRegistration(true);
+  };
+
+  const handleRegistrationClick = async (event: any) => // Register button event.
+  {
+    event.preventDefault();
+
+    if(IsValidRegistrationPanel())
+    {
+      const hesh_pass = await hashPassword(password);
+      const new_user = { name, surname, email, login, hesh_pass, teacher_code};
+
+      try
+      {
+        await axios.post('http://localhost:3000/users', new_user);
+
+        setName('');
+        setSurname('');
+        setEmail('');
+        setLogin('');
+        setPassword('');
+        setShowRegistration(false);
+        setCode('null');
+        
+        alert("Welcome");
+      } 
+      catch (error) { console.error('Registration failed:', error); }
+    }
+  };
+
+  const handleCheckboxChange = () =>  { setIsChecked(!isTeacher); };
 
   // Verification of fields during registration.
   //================================================================================================
@@ -250,6 +256,7 @@ function Auth({ updateUserData }: AuthProps)
     return true;
   }
   //================================================================================================
+  //================================================================================================
 
   // Password hashing.
   //================================================================================================
@@ -297,10 +304,10 @@ function Auth({ updateUserData }: AuthProps)
     return code;
   }
   //================================================================================================  
-  //================================================================================================
 
   return (
     <>
+
       {showRegistration ? (
         <div>
           {/* <div className="background">
@@ -328,17 +335,17 @@ function Auth({ updateUserData }: AuthProps)
               <input type="checkbox" id="teacher-checkbox" checked={isTeacher} onChange={handleCheckboxChange}/>
               <label htmlFor="teacher-checkbox">Are you a teacher?</label>
             </div>
-            <button onClick={handleRegistrationClick}>Register</button>
+            <button className="authbtn" onClick={handleRegistrationClick}>Register</button>
           </form>
         </div>
       ) : (
         <div>
-          <div className="background">
-            {/* <div className="shape"></div>
-            <div className="shape"></div> */}
-          </div>
+          {/* <div className="background">
+             <div className="shape"></div>
+            <div className="shape"></div> 
+          </div> */}
           <form>
-            <h3>Auth</h3>
+            <h3>Sign in to your account</h3>
             <label htmlFor="username">Username</label>
             <input type="text" placeholder="Login" id="username" value={login} onChange={(e) => setLogin(e.target.value)} />
             {loginError && <span className="error">{loginError}</span>}
@@ -349,7 +356,9 @@ function Auth({ updateUserData }: AuthProps)
             <button className="authbtn" onClick={ShowRegistrationPlateClick}>Registration</button>
           </form>
         </div>
+
       )}
+
     </>
   );
 }
